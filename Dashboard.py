@@ -1,11 +1,7 @@
 import pandas as pd  # pip install pandas openpyxl
 import plotly.express as px  # pip install plotly-express
 import streamlit as st  # pip install streamlit
-from pathlib import Path # pip install pathlib
 import json
-
-current_dir = Path(__file__).parent if "__file__" in locals() else Path.cwd()
-css_file = current_dir / "styles" / "main.css"
 
 # emojis: https://www.webfx.com/tools/emoji-cheat-sheet/
 st.set_page_config(page_title="Sales Dashboard", 
@@ -53,6 +49,7 @@ df["id"] = df["State"].apply(lambda x: state_id_map[x]) #COPYING "ID" FROM THE G
 #-----------------------------------
 
 #CREATING STREAMLIT PAGE
+
 st.sidebar.header("Please Filter Here:") #SIDEBAR TO DISPLAY FILTER
 
 Month = st.sidebar.selectbox("Month", df["Month"].unique()) #DATE FILTER
@@ -115,14 +112,73 @@ fig_daily_sales = px.bar(
     x=revenue_by_date.index,
     y="Revenue",
     title="<b>Revenue by Day</b>", #HERE I USED SOME HTML TO MAKE THE TITLE BOLD
-    color_discrete_sequence=["#0083B8"] * len(revenue_by_date), #ADDING COLOR TO THE BAR CHART
-    template="plotly_white", #THIS ADDS A WHITE COLOR TO THE BORDER
+    color_discrete_sequence=["#086788"] * len(revenue_by_date), #ADDING COLOR TO THE BAR CHART
 )
 fig_daily_sales.update_layout(
     xaxis=dict(tickmode="linear", title=""),  #REMOVING TITLE FROM X AXIS
-    plot_bgcolor="rgba(0,0,0,0)",
-    yaxis=dict(title="", showgrid=True, gridcolor="lightgrey", gridwidth=1, griddash="dot"),  #ADDIND DOT LINES TO THE Y AXIS
+    yaxis=dict(title="", showgrid=True, gridcolor="lightgrey", gridwidth=1, griddash="dot"), #ADDIND DOT LINES TO THE Y AXIS
 )
+fig_daily_sales.update_xaxes(tickfont_color="black", tickfont_size=9
+)
+fig_daily_sales.update_yaxes(tickfont_color="black", tickfont_size=12
+)
+#-----------------------------------
+
+#REVENUE BY STATE [CHOROPLETH MAP]
+df_grouped = df_selection.groupby(['id', 'State']).agg({'Revenue': 'sum'}).reset_index()
+fig_choropleth_US_map=px.choropleth_mapbox(df_grouped, locations="id", color="Revenue",
+                                        center={"lat": 31.15, "lon":-83.42}, zoom=3.7, title="<b>Revenue by State</b>",
+                                        geojson=us_states, color_continuous_scale="blues", opacity=0.6,
+                                        hover_name= "State", hover_data={"Revenue": True},
+)
+fig_choropleth_US_map.update_layout(
+    autosize= False,
+    mapbox_style="open-street-map",
+    #showlegend=False
+)
+#-----------------------------------
+
+#ADDING CHARTS ABOVE TO THE STREAMLIT COLUMNS
+left_column, right_column = st.columns(2)
+left_column.plotly_chart(fig_daily_sales, use_container_width=True)
+right_column.plotly_chart(fig_choropleth_US_map, use_container_width=True)
+#-----------------------------------
+
+#REVENUE BY CUSTOMER AQUISITION TYPE [BAR CHART]
+revenue_by_caqt= df_selection.groupby(by=["Customer Acquisition Type"])[["Revenue"]].sum().sort_values(by="Customer Acquisition Type") #SORTING VALUES AND GROUPING BY
+fig_Revenue_by_CustomerAq1 = px.bar(
+    revenue_by_caqt,
+    x=revenue_by_caqt.index,
+    y="Revenue",
+    text=revenue_by_caqt["Revenue"].apply(lambda x: f"US $ {x:,}"),
+    title="<b>Revenue by Customer Acquisition Type</b>",
+    color_discrete_sequence=["#086788"] * len(revenue_by_caqt),
+)
+
+fig_Revenue_by_CustomerAq1.update_traces(textposition="outside",texttemplate='%{text}', 
+                  textfont_color="#000", textfont_size=11)
+fig_Revenue_by_CustomerAq1.update_layout(
+    xaxis=dict(tickmode="linear", title="",), 
+    yaxis=dict(showgrid=False, title="",showticklabels=False), 
+)
+fig_Revenue_by_CustomerAq1.update_xaxes(tickfont_color="black", tickfont_size=15)
+#------------------------------------------
+
+#REVENUE BY CUSTOMER AQUISITION TYPE [PIE CHART]
+sales_by_Customer_Aq = df_selection.groupby(by=["Customer Acquisition Type"])[["Revenue"]].sum().sort_values(by="Customer Acquisition Type") #SORTING VALUES AND GROUPING BY
+fig_Revenue_by_CustomerAq2 = px.pie(
+    sales_by_Customer_Aq,
+    values="Revenue",
+    color_discrete_sequence=['#086788', '#DD1C1A', '#F0C808'],
+    names=sales_by_Customer_Aq.index,
+    title="<b>Revenue by Customer Acquisition Type (%) </b>",
+)
+#-----------------------------------
+
+#ADDING CHARTS ABOVE TO THE STREAMLIT COLUMNS
+left_column, right_column = st.columns(2)
+left_column.plotly_chart(fig_Revenue_by_CustomerAq1, use_container_width=True)
+right_column.plotly_chart(fig_Revenue_by_CustomerAq2, use_container_width=True)
 #-----------------------------------
 
 #UNITS SOLD BY PRODUCT [BAR CHART]
@@ -131,78 +187,23 @@ fig_product_sales = px.bar(
     sales_by_product,
     x="Units",
     y=sales_by_product.index,
-    orientation="h",
     text=sales_by_product["Units"].apply(lambda x: f" {x}"), #ADDING A SPACE BETWEEN LABEL AND BAR
     title="<b>Units Sold by Product</b>", #HERE I USED SOME HTML TO MAKE THE TITLE BOLD
-    color_discrete_sequence=["#0083B8"] * len(sales_by_product), #ADDING COLOR TO THE BAR CHART
-    template="plotly_white", #THIS ADDS A WHITE COLOR TO THE BORDER
+    color_discrete_sequence=["#086788"] * len(sales_by_product), #ADDING COLOR TO THE BAR CHART
 )
-fig_product_sales.update_traces(textposition="outside") #THIS KEEPS THE LABEL OUTRSIDE THE BAR
+
+fig_product_sales.update_traces(textposition="inside",texttemplate='%{text}', 
+                  textfont_color="#FFF", textfont_size=12)
 fig_product_sales.update_layout(
-    plot_bgcolor="rgba(0,0,0,0)",
-    xaxis=dict(title="",showgrid=False, showticklabels=False), #THIS MAKES GRINDLINES DESAPEAR
-    yaxis=dict(title=""), #REMOVING TITLE FROM Y AXIS
+    xaxis=dict(title="",showgrid=False, showticklabels=False,), #THIS MAKES GRINDLINES DESAPEAR
+    yaxis=dict(title="",), #REMOVING TITLE FROM Y AXIS
 )
-#-----------------------------------
-
-#ADDING CHARTS ABOVE TO THE STREAMLIT COLUMNS
-left_column, right_column = st.columns(2)
-left_column.plotly_chart(fig_daily_sales, use_container_width=True)
-right_column.plotly_chart(fig_product_sales, use_container_width=True)
-#-----------------------------------
-
-#REVENUE BY STATE [CHOROPLETH MAP]
-df_grouped = df_selection.groupby(['id', 'State']).agg({'Revenue': 'sum'}).reset_index()
-fig_choropleth_US_map=px.choropleth_mapbox(df_grouped, locations="id", color="Revenue",
-                                        center={"lat": 31.15, "lon":-85.42}, zoom=3.7, title="<b>Revenue by State</b>",
-                                        geojson=us_states, color_continuous_scale="blues", opacity=0.4,
-                                        hover_name= "State", hover_data={"Revenue": True},
-)
-fig_choropleth_US_map.update_layout(
-    #paper_bgcolor="#242424",
-    autosize= False,
-    mapbox_style="stamen-terrain",
-    #showlegend=False
-)
-#------------------------------------------
-
-#REVENUE BY CUSTOMER AQUISITION TYPE [PIE CHART]
-sales_by_Customer_Aq = df_selection.groupby(by=["Customer Acquisition Type"])[["Revenue"]].sum().sort_values(by="Customer Acquisition Type") #SORTING VALUES AND GROUPING BY
-fig_Revenue_by_CustomerAq = px.pie(
-    sales_by_Customer_Aq,
-    values="Revenue",
-    names=sales_by_Customer_Aq.index,
-    title="<b>Revenue by Customer Acquisition Type (%) </b>",
-)
-#-----------------------------------
-
-#ADDING CHARTS ABOVE TO THE STREAMLIT COLUMNS
-left_column, right_column = st.columns(2)
-left_column.plotly_chart(fig_choropleth_US_map, use_container_width=True)
-right_column.plotly_chart(fig_Revenue_by_CustomerAq, use_container_width=True)
-#-----------------------------------
-
-#REVENUE BY CUSTOMER AQUISITION TYPE [BAR CHART]
-revenue_by_caqt= df_selection.groupby(by=["Customer Acquisition Type"])[["Revenue"]].sum().sort_values(by="Customer Acquisition Type") #SORTING VALUES AND GROUPING BY
-fig_Revenue_by_Customer = px.bar(
-    revenue_by_caqt,
-    x=revenue_by_caqt.index,
-    y="Revenue",
-    text=revenue_by_caqt["Revenue"].apply(lambda x: f"US $ {x:,}"),
-    title="<b>Revenue by Customer Acquisition Type</b>",
-    color_discrete_sequence=["#0083B8"] * len(revenue_by_caqt),
-    template="plotly_white",
-)
-fig_Revenue_by_Customer.update_traces(textposition="outside")
-fig_Revenue_by_Customer.update_layout(
-    xaxis=dict(tickmode="linear", title=""), 
-    yaxis=dict(showgrid=False, title="",showticklabels=False), 
-)
+fig_product_sales.update_yaxes(tickfont_color="black", tickfont_size=12)
 #-----------------------------------
 
 #ADDING CHARTS ABOVE TO THE STREAMLIT COLUMNS
 left_column, middle_column, right_column = st.columns(3)
-middle_column.plotly_chart(fig_Revenue_by_Customer, use_container_width=True)
+middle_column.plotly_chart(fig_product_sales, use_container_width=True)
 
 # ---- HIDE STREAMLIT STYLE ----
 hide_st_style = """
