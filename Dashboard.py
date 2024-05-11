@@ -69,8 +69,8 @@ Customer = st.sidebar.multiselect(
 
 #THIS WILL MAKE THE FILTER WORK
 df_selection = df.query(
-    "Month == @Month & State == @State & Customer == @Customer"
-)
+    "Month == @Month & State == @State & Customer == @Customer" 
+) #WE JUST NEED TO REFERENCE DE VARIABLES ABOVE
 
 if df_selection.empty:
     st.warning("No data available based on the current filter settings!") #CHECK IF THE DATAFRAME IS EMPTY
@@ -86,21 +86,21 @@ st.title(":bar_chart: Sales Dashboard")
 st.markdown("##")
 
 #TOP KPI's
-total_sales = int(df_selection["Revenue"].sum())
-average_rating = round(df_selection["Customer Satisfaction Rating"].mean(), 1)
-star_rating = ":star:" * int(round(average_rating, 0))
-average_revenue = round(df_selection["Revenue"].mean(), 2)
+total_sales = int(df_selection["Revenue"].sum()) #THIS IS A SUM TO SHOW THE TOTAL REVENUE IN THE FIRST CARD
+average_rating = round(df_selection["Customer Satisfaction Rating"].mean(), 1) #THIS FORMULA CALCULATES THE AVERAGE CSAT
+star_rating = ":star:" * int(round(average_rating, 0)) #THIS IS HOW WE CALCULATE THE NUMBER OF STARS SHOWN IN THE THIRD CARD
+average_revenue = round(df_selection["Revenue"].mean(), 2) #THIS CALCULATES THE AVERAGE REVENUE OF ALL THE SALES
 
 left_column, middle_column, right_column = st.columns(3)
 with left_column:
-    st.subheader("Revenue:")
-    st.subheader(f"US $ {total_sales:,}")
+    st.markdown(f"<p style='font-size: x-large; font-weight: bold;'>Revenue:</p>", unsafe_allow_html=True) #HERE I USED SOME CSS JUST TO MAKE THE TEXT THE SIZE I WANT
+    st.subheader(f"US$ {total_sales:,}", anchor=False)
 with middle_column:
-    st.subheader("Average Revenue:")
-    st.subheader(f"US $ {average_revenue:,}")
+    st.markdown(f"<p style='font-size: x-large; font-weight: bold;'>Average Revenue:</p>", unsafe_allow_html=True)
+    st.subheader(f"US$ {average_revenue:,}", anchor=False)
 with right_column:
-    st.subheader("Customer Satisfaction Rating:")
-    st.subheader(f"{average_rating} {star_rating}")
+    st.markdown(f"<p style='font-size: x-large; font-weight: bold;'>Customer Satisfaction Rating:</p>", unsafe_allow_html=True)
+    st.subheader(f"{average_rating} {star_rating}", anchor=False)
 
 st.markdown("""---""")
 #-----------------------------------
@@ -117,11 +117,11 @@ fig_daily_sales = px.bar(
 fig_daily_sales.update_layout(
     xaxis=dict(tickmode="linear", title=""),  #REMOVING TITLE FROM X AXIS
     yaxis=dict(title="", showgrid=True, gridcolor="lightgrey", gridwidth=1, griddash="dot"), #ADDIND DOT LINES TO THE Y AXIS
-)
-fig_daily_sales.update_xaxes(tickfont_color="black", tickfont_size=9
-)
-fig_daily_sales.update_yaxes(tickfont_color="black", tickfont_size=12
-)
+) 
+fig_daily_sales.update_xaxes(tickfont_color="black", tickfont_size=9 
+) #HERE I DID SOME FORMATTING TO GET BETTER VISUALS FOR THE X AXIS
+fig_daily_sales.update_yaxes(tickfont_color="black", tickfont_size=12 
+) #HERE I DID SOME FORMATTING TO GET BETTER VISUALS FOR THE Y AXIS
 #-----------------------------------
 
 #REVENUE BY STATE [CHOROPLETH MAP]
@@ -134,7 +134,6 @@ fig_choropleth_US_map=px.choropleth_mapbox(df_grouped, locations="id", color="Re
 fig_choropleth_US_map.update_layout(
     autosize= False,
     mapbox_style="open-street-map",
-    #showlegend=False
 )
 #-----------------------------------
 
@@ -150,8 +149,8 @@ fig_Revenue_by_CustomerAq1 = px.bar(
     revenue_by_caqt,
     x=revenue_by_caqt.index,
     y="Revenue",
-    text=revenue_by_caqt["Revenue"].apply(lambda x: f"US $ {x:,}"),
-    title="<b>Revenue by Customer Acquisition Type</b>",
+    text=revenue_by_caqt["Revenue"].apply(lambda x: f"US$ {x:,}"),
+    title="<b>Revenue by Customer Acquisition Type</b>", #HERE I USED SOME CSS JUST TO MAKE THE TEXT BOLD
     color_discrete_sequence=["#086788"] * len(revenue_by_caqt),
 )
 
@@ -169,7 +168,7 @@ sales_by_Customer_Aq = df_selection.groupby(by=["Customer Acquisition Type"])[["
 fig_Revenue_by_CustomerAq2 = px.pie(
     sales_by_Customer_Aq,
     values="Revenue",
-    color_discrete_sequence=['#086788', '#DD1C1A', '#F0C808'],
+    color_discrete_sequence=['#086788', '#DD1C1A', '#F0C808'], #HERE I WROTHE THIS TO CHOOSE THE COLORS OF THE PIE PIECES
     names=sales_by_Customer_Aq.index,
     title="<b>Revenue by Customer Acquisition Type (%) </b>",
 )
